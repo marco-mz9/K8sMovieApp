@@ -1,0 +1,71 @@
+# ==============================================================================
+# Proyecto: FinTech Solutions S. A. - TechOps Solutions
+# Manifiesto: 04-backend.yaml - API REST Node.js/Express (Deployment + ClusterIP)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: fintech
+  labels:
+    app: backend
+    tier: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        tier: api
+    spec:
+      containers:
+      - name: backend
+        image: markm9/fintech-backend:1.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: fintech-config
+        livenessProbe:
+          httpGet:
+            path: /api/movies
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/movies
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: fintech
+  labels:
+    app: backend
+    tier: api
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+  - port: 5000
+    targetPort: 5000
+    protocol: TCP

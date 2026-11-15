@@ -1,0 +1,73 @@
+# ==============================================================================
+# Proyecto: FinTech Solutions S. A. - TechOps Solutions
+# Manifiesto: 06-security.yaml - Políticas de Red (Zero Trust) y RBAC
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongodb-isolation
+  namespace: fintech
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: backend
+    ports:
+    - protocol: TCP
+      port: 27017
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-isolation
+  namespace: fintech
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 5000
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fintech-sa
+  namespace: fintech
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fintech-pod-reader
+  namespace: fintech
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fintech-pod-reader-binding
+  namespace: fintech
+subjects:
+- kind: ServiceAccount
+  name: fintech-sa
+  namespace: fintech
+roleRef:
+  kind: Role
+  name: fintech-pod-reader
+  apiGroup: rbac.authorization.k8s.io

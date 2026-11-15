@@ -1,0 +1,18 @@
+# ==============================================================================
+# Proyecto: FinTech Solutions S. A. - TechOps Solutions
+# Manifiesto: 02-storage.yaml - Almacenamiento persistente para MongoDB (EBS)
+# ==============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  namespace: fintech
+  labels:
+    app: mongodb
+    project: financial-management
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
