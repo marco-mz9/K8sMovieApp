@@ -5,7 +5,7 @@
 # Manifiesto: 00-namespace.yaml - Aislamiento lógico del entorno
 # ==============================================================================
 apiVersion: v1
-kind: Namespace
+kind: Pod
 metadata:
   name: fintech
   labels:
