@@ -1,0 +1,17 @@
+# Dependencias de Node.js (se instalan durante el build)
+node_modules/
+
+# Carpeta de build (se genera durante el build del contenedor)
+dist/
+
+# Archivos de entorno
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db

@@ -12,7 +12,7 @@
 | :--- | :--- | :--- |
 | `00-namespace.yaml` | `Namespace` (`fintech`) | Aislamiento lógico de todos los recursos de la aplicación. |
 | `01-secrets-config.yaml` | `Secret`, `ConfigMap` | Gestión segura de credenciales (`mongodb-secret`) y variables de entorno (`fintech-config`). |
-| `02-storage.yaml` | `PersistentVolumeClaim` | Solicitud de almacenamiento persistente (`mongo-pvc`, 2Gi) para los datos de MongoDB. |
+| `02-storage.yaml` | `PersistentVolume`, `PersistentVolumeClaim` | Almacenamiento persistente estático (`mongo-pv` y `mongo-pvc`, 2Gi) para los datos de MongoDB. |
 | `03-mongodb.yaml` | `StatefulSet`, `Service (ClusterIP)` | Base de datos MongoDB 7.0 con probes, límites de recursos y persistencia en `/data/db`. |
 | `04-backend.yaml` | `Deployment` (2 réplicas), `Service (ClusterIP)` | API REST (`markm9/fintech-backend:1.0`) expuesta internamente en `backend:5000`. |
 | `05-frontend.yaml` | `Deployment` (2 réplicas), `Service (LoadBalancer)` | Interfaz React/Nginx (`markm9/fintech-frontend:1.0`) publicada con balanceador AWS ELB. |
@@ -74,3 +74,46 @@ kubectl get svc frontend -n fintech
    kubectl delete pod mongodb-0 -n fintech
    ```
 3. Espera unos segundos a que el `StatefulSet` lo recree (`kubectl get pods -n fintech`) y recarga el navegador: los datos seguirán intactos gracias al `PersistentVolumeClaim`.
+
+---
+
+## Solución de Problemas: Compatibilidad de Arquitectura (`arm64` vs `amd64`) y Almacenamiento
+
+Si tus imágenes en Docker Hub (`markm9/fintech-backend:1.0` y `markm9/fintech-frontend:1.0`) fueron compiladas originalmente en Mac Apple Silicon (`linux/arm64`), los nodos worker de AWS EKS (`linux/amd64` / `x86_64`) mostrarán `ErrImagePull`. Además, si el clúster EKS de laboratorio no tiene un provisionador CSI dinámico instalado, el `mongo-pvc` quedará en `Pending`.
+
+### 1. Reconstruir y subir las imágenes en arquitectura `linux/amd64` desde tu instancia EC2
+
+Una vez actualices este repositorio en tu EC2 (`git pull`), reconstruye y publica ambas imágenes nativas para `linux/amd64`:
+
+```bash
+cd ~/K8sMovieApp
+
+# Iniciar sesión en Docker Hub
+docker login -u markm9
+
+# Construir y subir Backend (linux/amd64)
+docker build --platform linux/amd64 -t markm9/fintech-backend:1.0 ./backend
+docker push markm9/fintech-backend:1.0
+
+# Construir y subir Frontend (linux/amd64)
+docker build --platform linux/amd64 -t markm9/fintech-frontend:1.0 ./frontend
+docker push markm9/fintech-frontend:1.0
+```
+
+*(Alternativa desde tu Mac con Apple Silicon: usa `docker buildx build --platform linux/amd64,linux/arm64 -t markm9/fintech-backend:1.0 --push ./backend` para generar imágenes multi-arquitectura).*
+
+### 2. Reaplicar almacenamiento y reiniciar los Deployments
+
+Como el `mongo-pvc` anterior no tenía `storageClassName: manual`, elimínalo para recrearlo junto al `PersistentVolume` `mongo-pv` y reinicia los pods:
+
+```bash
+# Reemplazar el PVC anterior y crear el PV + PVC con storageClassName: manual
+kubectl delete pvc mongo-pvc -n fintech
+kubectl apply -f 02-storage.yaml
+
+# Reiniciar los despliegues para que vuelvan a descargar las imágenes amd64
+kubectl rollout restart deployment backend frontend -n fintech
+
+# Verificar que PV/PVC estén Bound y todos los pods en Running
+kubectl get pv,pvc,pods -n fintech -o wide
+```

@@ -1,7 +1,24 @@
 # ==============================================================================
 # Proyecto: FinTech Solutions S. A. - TechOps Solutions
-# Manifiesto: 02-storage.yaml - Almacenamiento persistente para MongoDB (EBS)
+# Manifiesto: 02-storage.yaml - Almacenamiento persistente para MongoDB (PV + PVC)
 # ==============================================================================
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongo-pv
+  labels:
+    type: local
+    app: mongodb
+    project: financial-management
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data/mongodb"
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -11,6 +28,7 @@ metadata:
     app: mongodb
     project: financial-management
 spec:
+  storageClassName: manual
   accessModes:
     - ReadWriteOnce
   resources:

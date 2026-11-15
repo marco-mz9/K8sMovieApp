@@ -1,0 +1,15 @@
+# Archivos de entorno (no subir al repositorio)
+.env
+.env.local
+.env.production
+
+# Dependencias de Node.js (se instalan dentro del contenedor)
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
