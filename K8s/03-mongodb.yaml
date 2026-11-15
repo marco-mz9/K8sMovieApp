@@ -3,7 +3,7 @@
 # Manifiesto: 03-mongodb.yaml - Base de Datos NoSQL (StatefulSet + ClusterIP)
 # ==============================================================================
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: mongodb
   namespace: fintech
